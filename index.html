@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" type="image/png" href="mzk_banner.png">
+    <link rel="apple-touch-icon" href="mzk_banner.png">
+    <title>MZK ELITE - DEFINITIVE EDITION</title>
+    <style>
+        :root { 
+            --primary: #ff2b2b; --bg: #050505; --card: rgba(20, 20, 20, 0.98); 
+            --gold: #ffd700; --coin: #ff9900; --blue: #0088ff; --text: #ffffff; 
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { 
+            margin: 0; background: var(--bg); color: var(--text); 
+            font-family: 'Segoe UI', Roboto, sans-serif; padding: env(safe-area-inset-top) 15px 40px 15px;
+            background-image: radial-gradient(circle at top, #300 0%, #050505 100%);
+        }
+        .header { text-align: center; padding: 20px 0; }
+        .logo-img { width: 140px; border-radius: 15px; border: 1px solid #444; filter: drop-shadow(0 0 15px rgba(255,0,0,0.4)); }
+        
+        .card { 
+            background: var(--card); border: 1px solid #333; border-radius: 20px; 
+            padding: 18px; margin-bottom: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+        }
+        h2 { font-size: 0.75rem; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+        h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--primary), transparent); }
+
+        .lvl-display { font-size: 3rem; font-weight: 900; color: var(--primary); text-align: center; margin: 0; text-shadow: 0 0 10px rgba(255,0,0,0.5); }
+        .bar { background: #000; height: 14px; border-radius: 7px; overflow: hidden; margin: 12px 0; border: 1px solid #444; }
+        .fill { height: 100%; background: linear-gradient(90deg, var(--primary), #ff6b6b); width: 0%; transition: 0.8s ease-in-out; }
+
+        button { 
+            background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; 
+            font-weight: 800; cursor: pointer; width: 100%; font-size: 0.8rem; transition: 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #1a1a1a; color: #444; cursor: not-allowed; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .rank-row { display: flex; justify-content: space-between; padding: 12px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,255,255,0.03); font-size: 0.85rem; }
+        .player-active { border: 1px solid var(--primary); background: rgba(255,0,0,0.15); }
+        
+        #log { height: 150px; overflow-y: auto; font-size: 0.75rem; color: #ccc; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; }
+        .cosmin-msg { color: #ff0055 !important; font-weight: 900; }
+        .mt-msg { color: var(--gold); font-weight: bold; }
+        .badge { padding: 4px 8px; background: #000; border: 1px solid var(--gold); border-radius: 6px; font-size: 0.6rem; color: var(--gold); margin: 2px; display: inline-block; }
+        .locked { opacity: 0.2; filter: grayscale(1); }
+        
+        canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 100; }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+    <canvas id="confetti"></canvas>
+
+    <div class="header">
+        <img src="mzk_banner.png" alt="MZK" class="logo-img">
+        <div id="rankTitle" style="color: var(--gold); font-size: 0.75rem; margin-top: 8px; font-weight: bold; text-shadow: 0 0 5px black;">DIVISÃO: BRONZE</div>
+    </div>
+
+    <div id="bossCard" class="card" style="display: none; border: 2px solid var(--primary); background: linear-gradient(180deg, #400, #000);">
+        <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--primary); font-weight:900;">
+            <span>👾 BOSS: A PREGUIÇA ABISSAL</span>
+            <span id="bossHpTxt">1000/1000 HP</span>
+        </div>
+        <div class="bar"><div id="bossBar" class="fill" style="background: red; width: 100%"></div></div>
+    </div>
+
+    <div class="card">
+        <p id="lvlDisplay" class="lvl-display">LVL 1</p>
+        <div id="streakDisplay" style="text-align: center; color: var(--gold); font-size: 0.85rem; margin: 5px 0;">🔥 Streak: 0 dias</div>
+        <div class="bar"><div id="xpBar" class="fill"></div></div>
+        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+            <span style="color: var(--coin);">💰 <span id="coins">0</span> MZK</span>
+            <span id="xp2x" style="color: var(--gold); display: none;">⚡ 2X XP ATIVO</span>
+        </div>
+    </div>
+
+    <h2>🏆 Conquistas MZK</h2>
+    <div class="card" id="achievementArea"></div>
+
+    <h2>🛒 Loja & Inventário</h2>
+    <div class="card">
+        <div class="grid-2">
+            <button onclick="buy('xp', 150)" style="background:#222">🧪 POÇÃO DOBRO XP (150c)</button>
+            <button onclick="buy('food', 500)" style="background:#222">🍔 FAST FOOD (500c)</button>
+        </div>
+        <div id="inv" style="margin-top:10px; display:flex; gap:5px; flex-wrap:wrap;"></div>
+    </div>
+
+    <h2>🎲 Banca do MT_</h2>
+    <div class="card">
+        <button id="betBtn" onclick="bet()" style="background:var(--gold); color:#000;">APOSTAR 100c NO TREINO</button>
+        <div id="betLabel" style="font-size:0.65rem; text-align:center; margin-top:8px; font-weight: bold; color: var(--gold);"></div>
+    </div>
+
+    <h2>🍴 Refeições</h2>
+    <div class="card"><div class="grid-2" id="mealArea"></div></div>
+
+    <h2>🏋️ Treino & Hidratação</h2>
+    <div class="card">
+        <select id="gymType" style="width:100%; padding:14px; background:#000; color:#fff; border:1px solid #444; border-radius:10px; margin-bottom:10px;">
+            <option value="Peito">Peito & Tríceps</option>
+            <option value="Costas">Costas & Bíceps</option>
+            <option value="Pernas">Pernas (Hardcore)</option>
+            <option value="Boxe">🥊 Sparring de Boxe</option>
+        </select>
+        <button id="gymBtn" onclick="doGym()">FINALIZAR SESSÃO</button>
+        <div style="margin-top: 15px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem;"><span>💧 HIDRATAÇÃO</span><span id="waterTxt">0/3000ml</span></div>
+            <div class="bar"><div id="waterBar" class="fill" style="background:var(--blue)"></div></div>
+            <div class="grid-2">
+                <button onclick="drink(250)" style="background:var(--blue)">+250ml</button>
+                <button onclick="drink(1000)" style="background:var(--blue)">+1L</button>
+            </div>
+        </div>
+    </div>
+
+    <h2>🌍 Ranking Global</h2>
+    <div class="card" id="rankList"></div>
+
+    <h2>💬 Chat & Provocações</h2>
+    <div id="log" class="card"></div>
+
+    <script>
+        let audioCtx = null;
+        let s = { 
+            xp:0, lvl:1, coins:0, water:0, streak:0, x2:false, bet:false, 
+            tasks:{gym:false, meals:[]}, inv:[], ach:[], last:new Date().toLocaleDateString(), boss:1000 
+        };
+        
+        const bots = [
+            {n:"Cosmin", l:18, st:10, phrases: ["Ainda nesse nível? Patético.", "O meu avô treina mais que tu.", "Olha para o ranking e chora.", "Fraco.", "Subi de nível enquanto você dormia, seu fraco."]},
+            {n:"Pedrin MDM", l:14, st:5, phrases: ["Mantém o foco seu merdinha.", "Sem desculpas irmão.", "A disciplina é a chave brow.", "Ta louco, ta louco, muito empenho"]},
+            {n:"Mt_", l:10, st:12, phrases: ["Mlk, a banca sempre cobra.", "Aposta feita, aposta paga."]},
+            {n:"Vitinn", l:8, st:3, phrases: ["Já bebeu água hoje?", "O treino não se faz sozinho.", "Você ta mais devagar que eu que fumo o dia inteiro, mano haha."]}
+        ];
+
+        const achievements = [
+            {id:'lvl5', n:'Veterano', d:'Alcançar LVL 5', req: (s)=>s.lvl>=5},
+            {id:'beast', n:'Modo Besta', d:'Treino com aposta ativa', req: (s)=>s.tasks.gym && s.bet},
+            {id:'water', n:'Hidratado', d:'Beber 3L de água', req: (s)=>s.water>=3000},
+            {id:'streak3', n:'Constante', d:'3 dias de streak', req: (s)=>s.streak>=3}
+        ];
+
+        function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        function sound(f, d=0.1) {
+            if(!audioCtx) return;
+            const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.frequency.value=f; g.gain.value=0.08; o.start(); o.stop(audioCtx.currentTime+d);
+        }
+
+        function notify(t, b) { if (Notification.permission === "granted") new Notification(t, { body:b, icon:'mzk_banner.png' }); }
+
+        function save() { localStorage.setItem('mzk_def_2026', JSON.stringify(s)); }
+        function load() {
+            const d = localStorage.getItem('mzk_def_2026');
+            if(d) {
+                let p = JSON.parse(d);
+                if(p.last !== new Date().toLocaleDateString()) {
+                    if(p.bet && !p.tasks.gym) addLog("MT_: 'Perbeste 100c por falta de treino!'", "mt-msg");
+                    p.streak = p.tasks.gym ? p.streak + 1 : 0;
+                    p.tasks = {gym:false, meals:[]}; p.water = 0; p.bet = false; p.last = new Date().toLocaleDateString();
+                }
+                s = p;
+            }
+            render();
+        }
+
+        function addXP(v, msg) {
+            let gain = s.x2 ? v*2 : v; s.xp += gain; s.coins += 15;
+            if(new Date().getDay() === 0) s.boss = Math.max(0, s.boss - gain);
+            if(s.xp >= 100) { s.lvl++; s.xp = 0; sound(523, 0.4); createConfetti(); addLog("⭐ NOVO NÍVEL ALCANÇADO!"); }
+            else sound(800, 0.05);
+            achievements.forEach(a => { if(!s.ach.includes(a.id) && a.req(s)) { s.ach.push(a.id); s.coins+=200; addLog(`🏆 CONQUISTA: ${a.n}`); sound(1000, 0.2); } });
+            addLog(`+${gain}XP: ${msg}`); save(); render();
+        }
+
+        function drink(v) { s.water = Math.min(3000, s.water+v); addXP(5, "Hidratação"); }
+        function doGym() { if(!s.tasks.gym) { s.tasks.gym = true; if(s.bet) { s.coins += 250; addLog("MT_: 'Aposta paga! +250c'", "mt-msg"); } addXP(55, "Sessão de Treino"); } }
+        function toggleMeal(m) { if(!s.tasks.meals.includes(m)) { s.tasks.meals.push(m); addXP(15, `Refeição: ${m}`); } }
+        function bet() { if(!s.bet && s.coins >= 100) { s.coins -= 100; s.bet = true; addLog("MT_: 'Aposta aceita. Faz por merecer.'", "mt-msg"); save(); render(); } }
+        function buy(t, c) { if(s.coins >= c) { s.coins -= c; if(t==='xp') { s.x2 = true; setTimeout(()=> { s.x2=false; render(); }, 3600000); } else s.inv.push(t==='food'?'🥩 Bife':'🧪 Poção'); save(); render(); } }
+
+        function addLog(t, cls="") {
+            const l = document.getElementById('log');
+            l.innerHTML += `<div class="${cls}">> ${t}</div>`;
+            l.scrollTop = l.scrollHeight;
+        }
+
+        function render() {
+            document.getElementById('lvlDisplay').innerText = `LVL ${s.lvl}`;
+            document.getElementById('coins').innerText = s.coins;
+            document.getElementById('xpBar').style.width = s.xp + "%";
+            document.getElementById('waterBar').style.width = (s.water/3000)*100 + "%";
+            document.getElementById('waterTxt').innerText = `${s.water}/3000ml`;
+            document.getElementById('streakDisplay').innerText = `🔥 Streak: ${s.streak} dias`;
+            document.getElementById('betLabel').innerText = s.bet ? "✅ APOSTA ATIVA" : "SEM APOSTA";
+            document.getElementById('gymBtn').disabled = s.tasks.gym;
+            document.getElementById('xp2x').style.display = s.x2 ? 'inline' : 'none';
+
+            const meals = ["Café", "Almoço", "Lanche", "Jantar"];
+            document.getElementById('mealArea').innerHTML = meals.map(m => `
+                <button onclick="toggleMeal('${m}')" ${s.tasks.meals.includes(m)?'disabled':''} style="background:${s.tasks.meals.includes(m)?'#111':'#222'}; font-size:0.65rem;">${m}</button>
+            `).join('');
+
+            document.getElementById('achievementArea').innerHTML = achievements.map(a => `
+                <span class="badge ${s.ach.includes(a.id)?'':'locked'}" title="${a.d}">${a.n}</span>
+            `).join('');
+
+            const isSun = new Date().getDay() === 0;
+            document.getElementById('bossCard').style.display = isSun ? 'block' : 'none';
+            document.getElementById('bossBar').style.width = (s.boss/1000)*100 + "%";
+            document.getElementById('bossHpTxt').innerText = `${s.boss}/1000 HP`;
+
+            let all = [...bots, {n:"VOCÊ", l:s.lvl, is:true}].sort((a,b) => b.l - a.l);
+            document.getElementById('rankList').innerHTML = all.map(p => `
+                <div class="rank-row ${p.is?'player-active':''}"><span>${p.n}</span><span>LVL ${p.l}</span></div>
+            `).join('');
+
+            const rks = ["BRONZE", "PRATA", "OURO", "PLATINA", "IMORTAL", "LENDA"];
+            document.getElementById('rankTitle').innerText = "DIVISÃO: " + (rks[Math.floor(s.lvl/5)] || "DIVINDADE");
+        }
+
+        function createConfetti() {
+            const c = document.getElementById('confetti'); const ctx = c.getContext('2d');
+            c.width = window.innerWidth; c.height = window.innerHeight;
+            let pts = Array.from({length:40}, () => ({x:Math.random()*c.width, y:c.height, v:Math.random()*5+2, color:Math.random()*360}));
+            function anim() {
+                ctx.clearRect(0,0,c.width,c.height);
+                pts.forEach(p => { p.y -= p.v; ctx.fillStyle=`hsl(${p.color},100%,50%)`; ctx.fillRect(p.x, p.y, 6, 6); });
+                if(pts.length > 0 && pts[0].y > -10) requestAnimationFrame(anim);
+            } anim();
+        }
+
+        setInterval(() => {
+            const b = bots[Math.floor(Math.random()*bots.length)];
+            if(Math.random() > 0.7) {
+                b.l++;
+                const msg = b.phrases[Math.floor(Math.random()*b.phrases.length)];
+                if(b.n === "Cosmin" || b.l >= s.l) {
+                    addLog(`${b.n}: "${msg}"`, b.n === "Cosmin" ? "cosmin-msg" : "mt-msg");
+                    notify(`Rival ${b.n}`, msg);
+                }
+                render();
+            }
+        }, 40000);
+
+        window.onload = () => { if ("Notification" in window) Notification.requestPermission(); load(); };
+    </script>
+</body>
+</html>
